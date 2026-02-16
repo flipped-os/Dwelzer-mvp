@@ -5,6 +5,10 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { SessionProvider } from "next-auth/react";
 
+import FloatingListIcon from "@/components/FloatingListIcon";
+import FloatingMarketplaceIcon from "@/components/FloatingMarketplaceIcon";
+import FloatingLegalIcon from "@/components/FloatingLegalIcon";
+
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
@@ -20,6 +24,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Header />
           <main className="min-h-screen">{children}</main>
           <Footer />
+
+          {/* Floating icons for pop-ups */}
+          <FloatingListIcon />
+          <FloatingMarketplaceIcon />
+          <FloatingLegalIcon />
         </SessionProvider>
       </body>
     </html>
