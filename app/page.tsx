@@ -1,10 +1,13 @@
 // app/page.tsx
 "use client";
+
 import { useState } from "react";
 import RealEstatePopup from "@/components/RealEstatePopup";
 import MarketplacePopup from "@/components/MarketplacePopup";
 import LegalPopup from "@/components/LegalPopup";
 import FloatingListIcon from "@/components/FloatingListIcon";
+import FloatingMarketplaceIcon from "@/components/FloatingMarketplaceIcon";
+import FloatingLegalIcon from "@/components/FloatingLegalIcon";
 
 export default function LandingPage() {
   const [popup, setPopup] = useState<string | null>(null);
@@ -12,6 +15,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen p-8 animate-fadeIn">
       <h1 className="text-5xl font-bold text-blue-900 mb-8">Dwelzer</h1>
+      
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <button className="btn btn-primary">Hotels</button>
         <button className="btn btn-primary">Shortlets</button>
@@ -30,7 +34,10 @@ export default function LandingPage() {
       {popup === "MARKETPLACE" && <MarketplacePopup onSelect={(t) => alert("Redirect: " + t)} />}
       {popup === "LEGAL" && <LegalPopup onSelect={(t) => alert("Redirect: " + t)} />}
 
+      {/* Floating Icons */}
       <FloatingListIcon />
+      <FloatingMarketplaceIcon />
+      <FloatingLegalIcon />
     </div>
   );
 }
