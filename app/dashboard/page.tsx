@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import ListingForm from "@/components/ListingForm";
+import VerifyKYCButton from "@/components/VerifyKYCButton";
 
 interface Listing {
   id: string;
@@ -17,7 +18,6 @@ interface Listing {
 export default function DashboardPage() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState<string | null>(null);
 
   const fetchListings = async () => {
     try {
@@ -44,18 +44,22 @@ export default function DashboardPage() {
     }
   };
 
-  const handleEdit = (id: string) => {
-    setEditingId(id);
-    const listing = listings.find((l) => l.id === id);
-    if (listing) {
-      // Prefill ListingForm (optional)
-      alert("Prefill functionality can be implemented here if needed.");
+  const handlePay = async (listingId: string, amount: number) => {
+    try {
+      const res = await axios.post("/api/stripe/checkout", { listingId, amount });
+      if (res.data.success) alert("Payment (mock) completed!");
+    } catch (err) {
+      console.error(err);
+      alert("Payment failed!");
     }
   };
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">My Listings & Create New</h1>
+
+      {/* KYC Verification */}
+      <VerifyKYCButton />
 
       {/* Listing Form */}
       <ListingForm />
@@ -80,11 +84,11 @@ export default function DashboardPage() {
                 ))}
               </div>
 
-              {/* Edit/Delete Buttons */}
+              {/* Action Buttons */}
               <div className="flex gap-2 mt-4">
                 <button
                   className="btn btn-sm btn-outline text-blue-900 hover:shadow-md"
-                  onClick={() => handleEdit(l.id)}
+                  onClick={() => alert("Edit feature optional for MVP")}
                 >
                   Edit
                 </button>
@@ -93,6 +97,12 @@ export default function DashboardPage() {
                   onClick={() => handleDelete(l.id)}
                 >
                   Delete
+                </button>
+                <button
+                  className="btn btn-sm btn-success hover:shadow-md"
+                  onClick={() => handlePay(l.id, l.price)}
+                >
+                  Pay / Reserve
                 </button>
               </div>
             </div>
