@@ -1,106 +1,137 @@
 "use client";
 
 import { useState } from "react";
-import { useStore } from "@/stores/useStore";
 import axios from "axios";
+import { useStore } from "@/stores/useStore";
 
 export default function ListingForm() {
-  const kycVerified = useStore((state) => state.kycVerified);
-
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [price, setPrice] = useState<number | "">("");
+  const [price, setPrice] = useState<number>(0);
   const [category, setCategory] = useState<"HOTELS" | "SHORTLETS" | "REAL_ESTATE" | "MARKETPLACE" | "LEGAL">("REAL_ESTATE");
-  const [images, setImages] = useState<File[]>([]);
-  const [message, setMessage] = useState("");
+  const [images, setImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const user = useStore((state) => state.user);
+  const kycVerified = useStore((state) => state.kycVerified);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) setImages(Array.from(e.target.files));
+  if (!user) return <p>Please log in to create listings.</p>;
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    setUploading(true);
+
+    const uploadedUrls: string[] = [];
+    for (let i = 0; i < e.target.files.length; i++) {
+      const file = e.target.files[i];
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", "ml_default"); // can be anything in Cloudinary settings
+
+      try {
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/upload`, {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+        uploadedUrls.push(data.secure_url);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    setImages(uploadedUrls);
+    setUploading(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!kycVerified) {
-      setMessage("You must complete KYC verification before listing!");
-      return;
-    }
-
-    if (!title || !description || !price || images.length === 0) {
-      setMessage("Please fill all fields and upload at least one image.");
+      alert("You must complete KYC verification before listing!");
       return;
     }
 
     try {
-      // Mock upload: here you would integrate Cloudinary / S3
-      const uploadedImages = images.map((file) => URL.createObjectURL(file));
+      await axios.post("/api/listings", {
+        title,
+        description,
+        price,
+        category,
+        images,
+      });
 
-      const payload = { title, description, price: Number(price), category, images: uploadedImages };
-
-      const res = await axios.post("/api/listings", payload);
-      if (res.status === 200) {
-        setMessage("Listing created successfully!");
-        setTitle("");
-        setDescription("");
-        setPrice("");
-        setCategory("REAL_ESTATE");
-        setImages([]);
-      }
-    } catch (err: any) {
-      setMessage(err.response?.data?.error || "Error creating listing.");
+      alert("Listing created!");
+      setTitle("");
+      setDescription("");
+      setPrice(0);
+      setCategory("REAL_ESTATE");
+      setImages([]);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to create listing");
     }
   };
 
   return (
-    <div className="bg-white p-6 rounded shadow-lg w-full max-w-lg mx-auto animate-fade-in">
-      <h2 className="text-xl font-bold mb-4">Create New Listing</h2>
-      {message && <p className="mb-2 text-red-600">{message}</p>}
+    <form className="bg-white p-6 rounded shadow-md mb-6" onSubmit={handleSubmit}>
+      <h2 className="text-lg font-bold mb-4">Create a Listing</h2>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <input
-          type="text"
-          placeholder="Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="input input-bordered w-full"
-        />
+      <input
+        type="text"
+        placeholder="Title"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        className="input input-bordered w-full mb-3"
+        required
+      />
 
-        <textarea
-          placeholder="Description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className="textarea textarea-bordered w-full"
-        />
+      <textarea
+        placeholder="Description"
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        className="textarea textarea-bordered w-full mb-3"
+        required
+      />
 
-        <input
-          type="number"
-          placeholder="Price"
-          value={price}
-          onChange={(e) => setPrice(e.target.value === "" ? "" : Number(e.target.value))}
-          className="input input-bordered w-full"
-        />
+      <input
+        type="number"
+        placeholder="Price"
+        value={price}
+        onChange={(e) => setPrice(parseFloat(e.target.value))}
+        className="input input-bordered w-full mb-3"
+        required
+      />
 
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value as any)}
-          className="select select-bordered w-full"
-        >
-          <option value="HOTELS">Hotels</option>
-          <option value="SHORTLETS">Shortlets</option>
-          <option value="REAL_ESTATE">Real Estate</option>
-          <option value="MARKETPLACE">Marketplace</option>
-          <option value="LEGAL">Legal</option>
-        </select>
+      <select
+        value={category}
+        onChange={(e) => setCategory(e.target.value as any)}
+        className="select select-bordered w-full mb-3"
+      >
+        <option value="HOTELS">Hotels</option>
+        <option value="SHORTLETS">Shortlets</option>
+        <option value="REAL_ESTATE">Real Estate</option>
+        <option value="MARKETPLACE">Marketplace</option>
+        <option value="LEGAL">Legal</option>
+      </select>
 
-        <input type="file" multiple onChange={handleFileChange} className="file-input file-input-bordered w-full" />
+      <input
+        type="file"
+        multiple
+        accept="image/*"
+        onChange={handleImageUpload}
+        className="mb-3"
+      />
+      {uploading && <p>Uploading images...</p>}
 
-        <button
-          type="submit"
-          className="btn btn-primary bg-blue-900 hover:shadow-lg hover:scale-105 transition mt-2"
-        >
-          Create Listing
-        </button>
-      </form>
-    </div>
+      <div className="flex gap-2 flex-wrap mb-3">
+        {images.map((img, i) => (
+          <img key={i} src={img} alt="listing" className="w-20 h-20 object-cover rounded" />
+        ))}
+      </div>
+
+      <button type="submit" className="btn btn-primary w-full">
+        Create Listing
+      </button>
+    </form>
   );
-            }
+}
